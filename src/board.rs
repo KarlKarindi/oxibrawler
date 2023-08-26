@@ -3,14 +3,71 @@ pub struct BitBoard(pub u64);
 
 #[derive(PartialEq, Eq, Debug, Clone, Hash)]
 pub struct Position {
+    // State of the game
+    state: State,
     // Bitboard for either side
     // First side corresponds to WHITE, second to BLACK
     bb_sides: [BitBoard; 2],
     // Bitboards for both pieces on either side
     // First bitboards correspond to WHITE, second to BLACK
     bb_pieces: [[BitBoard; 6]; 2],
-    // State of the game. Includes castling rights, en passant square, half move counter, and side to move
-    state: State,
+}
+
+impl Default for Position {
+    fn default() -> Self {
+        let white_pieces: u64 =
+            0b00000000_00000000_00000000_00000000_00000000_00000000_11111111_11111111;
+        let white_pawns: u64 =
+            0b00000000_00000000_00000000_00000000_00000000_00000000_11111111_00000000;
+        let white_knights: u64 =
+            0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_01000010;
+        let white_bishops: u64 =
+            0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00100100;
+        let white_rooks: u64 =
+            0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_10000001;
+        let white_queens: u64 =
+            0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00010000;
+        let white_king: u64 =
+            0b00000000_00000000_00000000_00000000_00000000_00000000_00000000_00001000;
+
+        let black_pieces: u64 =
+            0b11111111_11111111_00000000_00000000_00000000_00000000_00000000_00000000;
+        let black_pawns: u64 =
+            0b00000000_11111111_00000000_00000000_00000000_00000000_00000000_00000000;
+        let black_knights: u64 =
+            0b01000010_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+        let black_bishops: u64 =
+            0b00100100_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+        let black_rooks: u64 =
+            0b10000001_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+        let black_queens: u64 =
+            0b00010000_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+        let black_king: u64 =
+            0b00001000_00000000_00000000_00000000_00000000_00000000_00000000_00000000;
+
+        Self {
+            state: State::default(),
+            bb_sides: [BitBoard(white_pieces), BitBoard(black_pieces)],
+            bb_pieces: [
+                [
+                    BitBoard(white_pawns),
+                    BitBoard(white_knights),
+                    BitBoard(white_bishops),
+                    BitBoard(white_rooks),
+                    BitBoard(white_queens),
+                    BitBoard(white_king),
+                ],
+                [
+                    BitBoard(black_pawns),
+                    BitBoard(black_knights),
+                    BitBoard(black_bishops),
+                    BitBoard(black_rooks),
+                    BitBoard(black_queens),
+                    BitBoard(black_king),
+                ],
+            ],
+        }
+    }
 }
 
 #[derive(Hash, PartialEq, Eq, Debug, Clone)]
@@ -21,17 +78,18 @@ pub struct Position {
 /// 64 is H8
 pub struct Square(usize);
 
+#[repr(usize)]
 #[rustfmt::skip]
 pub enum SquareLabels {
-    None,
-    A1, B1, C1, D1, E1, F1, G1, H1,
-    A2, B2, C2, D2, E2, F2, G2, H2,
-    A3, B3, C3, D3, E3, F3, G3, H3,
-    A4, B4, C4, D4, E4, F4, G4, H4,
-    A5, B5, C5, D5, E5, F5, G5, H5,
-    A6, B6, C6, D6, E6, F6, G6, H6,
-    A7, B7, C7, D7, E7, F7, G7, H7,
     A8, B8, C8, D8, E8, F8, G8, H8,
+    A7, B7, C7, D7, E7, F7, G7, H7,
+    A6, B6, C6, D6, E6, F6, G6, H6,
+    A5, B5, C5, D5, E5, F5, G5, H5,
+    A4, B4, C4, D4, E4, F4, G4, H4,
+    A3, B3, C3, D3, E3, F3, G3, H3,
+    A2, B2, C2, D2, E2, F2, G2, H2,
+    A1, B1, C1, D1, E1, F1, G1, H1, 
+    None
 }
 
 pub struct Side;
@@ -60,16 +118,23 @@ pub struct State {
     side_to_move: usize,
 }
 
+impl Default for State {
+    fn default() -> Self {
+        Self {
+            castling_rights: CastlingRights::default(),
+            en_passant_square: None,
+            half_move_counter: 0,
+            side_to_move: Side::WHITE,
+        }
+    }
+}
+
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
 pub struct CastlingRights(u8);
 
 impl CastlingRights {
-    fn empty() -> Self {
+    fn none() -> Self {
         Self(Castling::NO_CASTLING)
-    }
-
-    fn all() -> Self {
-        Self::default()
     }
 }
 
