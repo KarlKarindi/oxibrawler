@@ -1,3 +1,4 @@
+use crate::fen_parser::FenParser;
 use crate::move_generator::Move;
 
 #[derive(PartialEq, Eq, PartialOrd, Clone, Copy, Debug, Hash)]
@@ -43,9 +44,9 @@ pub struct Position {
 }
 impl Position {
     fn load_position_from_fen(fen: &str) -> Self {
-        todo!()
+        let fen_parser: FenParser = FenParser::new();
+        fen_parser.parse_fen(fen)
     }
-
     pub fn new(state: State, bb_pieces: [[BitBoard; 6]; 2]) -> Self {
         Self { state, bb_pieces }
     }
@@ -185,8 +186,24 @@ impl Pieces {
 pub struct State {
     pub castling_rights: CastlingRights,
     pub en_passant_square: Option<Square>,
-    pub half_move_counter: u8,
+    pub half_move_counter: u64,
     pub side_to_move: usize,
+}
+
+impl State {
+    pub fn new(
+        castling_rights: CastlingRights,
+        en_passant_square: Option<Square>,
+        half_move_counter: u64,
+        side_to_move: usize,
+    ) -> Self {
+        Self {
+            castling_rights,
+            en_passant_square,
+            half_move_counter,
+            side_to_move,
+        }
+    }
 }
 
 impl Default for State {
@@ -201,7 +218,13 @@ impl Default for State {
 }
 
 #[derive(Debug, Clone, Hash, Eq, PartialEq)]
-pub struct CastlingRights(u8);
+pub struct CastlingRights(pub(crate) u8);
+
+impl CastlingRights {
+    pub fn none() -> Self {
+        Self(Castling::NO_CASTLING)
+    }
+}
 
 impl Default for CastlingRights {
     fn default() -> Self {
