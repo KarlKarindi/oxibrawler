@@ -4,12 +4,13 @@ use crate::board::BitBoard;
 use crate::board::Pieces;
 use crate::board::Position;
 use crate::board::Sides;
+use crate::board::Square;
 use crate::board::State;
 
 pub struct Move {
     pub piece: usize,
-    pub from: u8,
-    pub to: u8,
+    pub from: Square,
+    pub to: Square,
     pub promotion: Option<Pieces>,
     pub capture: Option<Pieces>,
 }
