@@ -15,8 +15,20 @@ pub struct Move {
     pub capture: Option<Pieces>,
 }
 
+impl Move {
+    pub fn new(piece: usize, from: Square, to: Square) -> Move {
+        Move {
+            piece,
+            from,
+            to,
+            promotion: None,
+            capture: None,
+        }
+    }
+}
+
 pub struct MoveGenerator {}
-/* 
+/*
 impl MoveGenerator {
     pub fn generate_available_moves(position: &Position, mv: Move) -> BitBoard {
         return match mv.piece {

@@ -46,6 +46,10 @@ impl Position {
         todo!()
     }
 
+    pub fn new(state: State, bb_pieces: [[BitBoard; 6]; 2]) -> Self {
+        Self { state, bb_pieces }
+    }
+
     pub fn find_occupied_by(&self, side: usize) -> BitBoard {
         let mut pieces = BitBoard(0);
         for piece_type in 0..6 {
@@ -69,12 +73,11 @@ impl Position {
     }
 
     pub fn make_move(&mut self, mv: Move) {
-        self.state.half_move_counter += 1;
-        self.state.side_to_move ^= 1;
         self.bb_pieces[self.state.side_to_move][mv.piece].clear_bit(mv.from);
         self.bb_pieces[self.state.side_to_move][mv.piece].set_bit(mv.to);
 
-        // TODO: Verify if this is correct
+        self.state.half_move_counter += 1;
+        self.state.side_to_move ^= 1;
     }
 }
 
@@ -134,14 +137,14 @@ impl Default for Position {
 #[derive(Debug, PartialEq, Eq, Clone, Copy, Hash)]
 #[rustfmt::skip]
 pub enum Square {
-    A8 = 0, B8, C8, D8, E8, F8, G8, H8,
-    A7,     B7, C7, D7, E7, F7, G7, H7,
-    A6,     B6, C6, D6, E6, F6, G6, H6,
-    A5,     B5, C5, D5, E5, F5, G5, H5,
-    A4,     B4, C4, D4, E4, F4, G4, H4,
-    A3,     B3, C3, D3, E3, F3, G3, H3,
-    A2,     B2, C2, D2, E2, F2, G2, H2,
-    A1,     B1, C1, D1, E1, F1, G1, H1 = 63,
+    A8 = 0,  B8, C8, D8, E8, F8, G8, H8,
+    A7 = 8,  B7, C7, D7, E7, F7, G7, H7,
+    A6 = 16, B6, C6, D6, E6, F6, G6, H6,
+    A5 = 24, B5, C5, D5, E5, F5, G5, H5,
+    A4 = 32, B4, C4, D4, E4, F4, G4, H4,
+    A3 = 40, B3, C3, D3, E3, F3, G3, H3,
+    A2 = 48, B2, C2, D2, E2, F2, G2, H2,
+    A1 = 56, B1, C1, D1, E1, F1, G1, H1 = 63,
 }
 
 impl Square {
@@ -315,14 +318,35 @@ mod tests {
     #[test]
     fn test_position_make_move() {
         let mut position = Position::default();
-        /*
-        position.bb_pieces[Sides::WHITE][Pieces::PAWN].make_move(
-
-        );
-        position.bb_pieces[Sides::WHITE][Pieces::PAWN].set_bit(16);
+        position.make_move(Move::new(Pieces::PAWN, Square::A2, Square::A4));
         assert_eq!(
             position.bb_pieces[Sides::WHITE][Pieces::PAWN].0,
-            0b00000000_00000000_00000000_00000000_00000000_00000000_11111111_00000000
-        ); */
+            0b00000000_00000000_00000000_00000000_10000000_00000000_01111111_00000000
+        );
+        position.make_move(Move::new(Pieces::KNIGHT, Square::B8, Square::C6));
+        assert_eq!(
+            position.bb_pieces[Sides::BLACK][Pieces::KNIGHT].0,
+            0b00000010_00000000_00100000_00000000_00000000_00000000_00000000_00000000
+        );
+    }
+
+    #[test]
+    fn test_position_make_move_increments_half_move_counter() {
+        let mut position = Position::default();
+        assert_eq!(position.state.half_move_counter, 0);
+        position.make_move(Move::new(Pieces::PAWN, Square::A2, Square::A4));
+        assert_eq!(position.state.half_move_counter, 1);
+        position.make_move(Move::new(Pieces::KNIGHT, Square::B8, Square::C6));
+        assert_eq!(position.state.half_move_counter, 2);
+    }
+
+    #[test]
+    fn test_position_make_move_switches_side_to_move() {
+        let mut position = Position::default();
+        assert_eq!(position.state.side_to_move, Sides::WHITE);
+        position.make_move(Move::new(Pieces::PAWN, Square::A2, Square::A4));
+        assert_eq!(position.state.side_to_move, Sides::BLACK);
+        position.make_move(Move::new(Pieces::KNIGHT, Square::B8, Square::C6));
+        assert_eq!(position.state.side_to_move, Sides::WHITE);
     }
 }
