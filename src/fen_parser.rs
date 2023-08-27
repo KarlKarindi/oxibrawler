@@ -1,4 +1,4 @@
-use crate::board::{BitBoard, Castling, CastlingRights, Position, Sides, State};
+use crate::board::{BitBoard, Castling, CastlingRights, Position, Sides, Square, State};
 use fen;
 use fen::BoardState;
 
@@ -6,15 +6,23 @@ pub struct FenParser {}
 
 impl FenParser {
     pub fn parse_fen(&self, fen: &str) -> Position {
-        let board = fen::BoardState::from_fen(fen).unwrap();
-        let state = State {
-            castling_rights: FenParser::find_castling_rights(&board),
-            en_passant_square: None,    // FIXME
-            side_to_move: Sides::WHITE, // FIXME
-            half_move_counter: board.halfmove_clock as u64,
+        let fen_board_state = fen::BoardState::from_fen(fen).unwrap();
+        let en_passant_square = match fen_board_state.en_passant_square {
+            Some(pos) => Square::from_usize(FenParser::convert_index(pos as usize)),
+            None => None,
+        };
+        let side_to_move = match fen_board_state.side_to_play {
+            fen::Color::White => Sides::WHITE,
+            fen::Color::Black => Sides::BLACK,
         };
 
-        // FIXME: Parse pieces
+        let state = State {
+            castling_rights: FenParser::find_castling_rights(&fen_board_state),
+            en_passant_square,
+            side_to_move,
+            half_move_counter: fen_board_state.halfmove_clock as u64,
+        };
+
         let bb_pieces = [
             [
                 BitBoard(0),
@@ -39,6 +47,11 @@ impl FenParser {
 
     pub fn new() -> FenParser {
         FenParser {}
+    }
+
+    // Converts indices from the fen crate to indices used in the bitboard crate.
+    fn convert_index(idx: usize) -> usize {
+        (7 - idx / 8) * 8 + (idx % 8)
     }
 
     fn find_castling_rights(board: &BoardState) -> CastlingRights {
@@ -139,5 +152,17 @@ mod tests {
             position.state.castling_rights,
             CastlingRights(Castling::NO_CASTLING)
         );
+    }
+
+    #[test]
+    fn test_parse_fen_en_passant() {
+        let fen_parser = FenParser::new();
+        let fen = "rnbqkbnr/pppp1ppp/8/4P3/8/8/PPPP1PPP/RNBQKBNR b KQkq a1 0 1";
+        let position = fen_parser.parse_fen(fen);
+        assert_eq!(position.state.en_passant_square, Some(Square::A1));
+
+        let fen = "rnbqkbnr/pppp1ppp/8/4P3/8/8/PPPP1PPP/RNBQKBNR b KQkq h8 0 1";
+        let position = fen_parser.parse_fen(fen);
+        assert_eq!(position.state.en_passant_square, Some(Square::H8));
     }
 }
