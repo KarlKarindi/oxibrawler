@@ -20,25 +20,75 @@ impl FenParser {
             castling_rights: FenParser::find_castling_rights(&fen_board_state),
             en_passant_square,
             side_to_move,
-            half_move_counter: fen_board_state.halfmove_clock as u64,
+            half_move_counter: fen_board_state.halfmove_clock,
         };
 
+        // The fen crate parser is kind of broken and parses pieces in the wrong order.
+        // This is why the colors, kings & queens are swapped when constructing the bitboards.
         let bb_pieces = [
             [
-                BitBoard(0),
-                BitBoard(0),
-                BitBoard(0),
-                BitBoard(0),
-                BitBoard(0),
-                BitBoard(0),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::Pawn,
+                    fen::Color::Black,
+                ),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::Knight,
+                    fen::Color::Black,
+                ),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::Bishop,
+                    fen::Color::Black,
+                ),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::Rook,
+                    fen::Color::Black,
+                ),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::King,
+                    fen::Color::Black,
+                ),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::Queen,
+                    fen::Color::Black,
+                ),
             ],
             [
-                BitBoard(0),
-                BitBoard(0),
-                BitBoard(0),
-                BitBoard(0),
-                BitBoard(0),
-                BitBoard(0),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::Pawn,
+                    fen::Color::White,
+                ),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::Knight,
+                    fen::Color::White,
+                ),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::Bishop,
+                    fen::Color::White,
+                ),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::Rook,
+                    fen::Color::White,
+                ),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::King,
+                    fen::Color::White,
+                ),
+                FenParser::parse_to_bitboard(
+                    &fen_board_state,
+                    fen::PieceKind::Queen,
+                    fen::Color::White,
+                ),
             ],
         ];
 
@@ -69,6 +119,24 @@ impl FenParser {
             castling_rights.0 |= Castling::BLACK_OOO;
         }
         castling_rights
+    }
+
+    fn parse_to_bitboard(
+        fen_board_state: &BoardState,
+        piece_kind: fen::PieceKind,
+        piece_color: fen::Color,
+    ) -> BitBoard {
+        let mut bitboard = BitBoard(0);
+
+        for (idx, piece_option) in fen_board_state.pieces.iter().enumerate() {
+            if let Some(piece) = piece_option {
+                if piece.kind == piece_kind && piece.color == piece_color {
+                    bitboard.0 |= 1 << FenParser::convert_index(idx);
+                }
+            }
+        }
+
+        bitboard
     }
 }
 
@@ -165,4 +233,34 @@ mod tests {
         let position = fen_parser.parse_fen(fen);
         assert_eq!(position.state.en_passant_square, Some(Square::H8));
     }
+
+    #[test]
+    fn test_convert_index() {
+        assert_eq!(Square::A1 as usize, FenParser::convert_index(0));
+        assert_eq!(Square::A8 as usize, 0);
+        assert_eq!(Square::B1 as usize, FenParser::convert_index(1));
+        assert_eq!(Square::B8 as usize, 1);
+        assert_eq!(Square::H8 as usize, FenParser::convert_index(63));
+        assert_eq!(Square::H1 as usize, 63);
+        assert_eq!(Square::E1 as usize, FenParser::convert_index(4));
+        assert_eq!(Square::E1 as usize, 60);
+    }
+
+    #[test]
+    fn test_parse_position_pieces_from_fen() {
+        let fen_parser = FenParser::new();
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let position = fen_parser.parse_fen(fen);
+        assert_eq!(Position::default().bb_pieces, position.bb_pieces);
+    }
+
+    #[test]
+    fn test_parse_position_state_from_fen() {
+        let fen_parser = FenParser::new();
+        let fen = "rnbqkbnr/pppppppp/8/8/8/8/PPPPPPPP/RNBQKBNR w KQkq - 0 1";
+        let position = fen_parser.parse_fen(fen);
+        assert_eq!(Position::default().state, position.state);
+    }
+
+    // TODO: Test with random game state
 }
